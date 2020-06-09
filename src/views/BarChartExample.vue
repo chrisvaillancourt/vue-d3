@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <h1>I'm a bar chart</h1>
+  <div class="example">
+    <h1>Bar Chart</h1>
     <div>
       <BarChart></BarChart>
     </div>
@@ -17,4 +17,11 @@ export default {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.example {
+  /* position: relative; */
+  /* display: flex; */
+  /* flex-direction: column; */
+  /* justify-content: center; */
+}
+</style>

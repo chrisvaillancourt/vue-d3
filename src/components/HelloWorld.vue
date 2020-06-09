@@ -135,4 +135,11 @@ li {
 a {
   color: #42b983;
 }
+.hello {
+  display: grid;
+  justify-self: center;
+}
+.hello * {
+  justify-self: center;
+}
 </style>

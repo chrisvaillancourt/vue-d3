@@ -16,3 +16,9 @@ export default {
   }
 };
 </script>
+<style scoped>
+.home {
+  grid-column: 1 / 4;
+  grid-row: 2 / -1;
+}
+</style>
