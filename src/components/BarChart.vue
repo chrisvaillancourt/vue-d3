@@ -4,6 +4,28 @@
       <div class="tooltip-range">Humidity: <span id="range"></span></div>
       <div class="tooltip-value"><span id="count"></span> days</div>
     </div>
+    <svg
+      class="histogram"
+      :height="dimensions.height"
+      :width="dimensions.width"
+    >
+      <g
+        class="bounds"
+        :transform="
+          `translate(${dimensions.margin.left}, ${dimensions.margin.top})`
+        "
+      >
+        <g class="bins">
+          <g></g>
+        </g>
+        <g
+          class="x-axis"
+          :transform="`translateY(${dimensions.boundedHeight})`"
+        >
+          <text class="x-axis-label"></text>
+        </g>
+      </g>
+    </svg>
   </div>
 </template>
 
@@ -12,52 +34,116 @@ import * as d3 from "d3";
 export default {
   name: "BarChart",
   data() {
-    return {};
+    return {
+      dimensions: {
+        margin: {
+          top: 10,
+          right: 10,
+          bottom: 50,
+          left: 10
+        },
+        width: null,
+        boundedWidth: null,
+        height: null,
+        boundedHeight: null
+      },
+      weatherData: [],
+      xScale: null,
+      yScale: null,
+      bars: []
+    };
   },
   beforeMount() {
-    this.drawBars().catch(console.error);
+    this.loadData()
+      .then(() => this.calculateScales())
+      .catch(console.error);
   },
-  computed: {
-    // weatherUrl() {
-    //   return require("./static/data/nyc_weather_data.json");
-    // }
+  mounted() {
+    this.updateDimensions({
+      newHeight: window.innerHeight,
+      newWidth: window.innerWidth
+    });
+    window.addEventListener("resize", this.handleResize);
+  },
+  destroyed() {
+    window.removeEventListener("resize", this.handleResize);
+  },
+  computed: {},
+  watch: {
+    weatherData: function() {
+      // this.calculateScales();
+    }
   },
   methods: {
+    updateDimensions({ newHeight, newWidth } = {}) {
+      console.log("setting dimensions");
+      this.dimensions.width = newWidth;
+      this.dimensions.height = newHeight;
+      this.dimensions.boundedWidth =
+        newWidth - this.dimensions.margin.left - this.dimensions.margin.right;
+      this.dimensions.boundedHeight =
+        newHeight - this.dimensions.margin.top - this.dimensions.margin.bottom;
+    },
+    handleResize(e) {
+      this.updateDimensions({
+        newHeight: window.innerHeight,
+        newWidth: window.innerWidth
+      });
+    },
+    async loadData() {
+      this.weatherData = await d3.json("./static/data/nyc_weather_data.json");
+    },
+    calculateScales() {
+      if (!this.weatherData.length > 0) return;
+      console.log("calculating scales");
+      function metricAccessor(d) {
+        return d.humidity;
+      }
+      function yAccessor(d) {
+        return d.length;
+      }
+      this.xScale = d3
+        .scaleLinear()
+        .domain(d3.extent(this.weatherData, metricAccessor))
+        .range([0, this.dimensions.boundedWidth])
+        .nice();
+      this.yScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(bins, yAccessor)])
+        .range([this.dimensions.boundedHeight, 0])
+        .nice();
+
+      var binsGenerator = d3
+        .histogram()
+        .domain(this.xScale.domain())
+        .value(metricAccessor)
+        .thresholds(12);
+
+      var bins = binsGenerator(this.weatherData);
+      var barPadding = 1;
+      this.bars = bins.map((d, i) => {
+        var { x0, x1 } = d;
+        var x = this.xScale(x0) + barPadding;
+        var y = this.yScale(yAccessor(d));
+        var height = this.dimensions.boundedHeight - this.yScale(yAccessor(d));
+        var width = d3.max([0, this.xScale(x1) - this.xScale(x0) - barPadding]);
+
+        return {
+          x,
+          y,
+          height,
+          width
+        };
+      });
+    },
     async drawBars() {
-      console.clear();
       console.log("drawing");
       // 1. Access data
 
-      const dataset = await d3.json("./static/data/nyc_weather_data.json");
-
+      var dataset = await d3.json("./static/data/nyc_weather_data.json");
       // 2. Create chart dimensions
-      function createDimensions({ customDimensions = {} } = {}) {
-        return {
-          margin: {
-            top: 10,
-            right: 10,
-            bottom: 50,
-            left: 10
-          },
-          get width() {
-            return (
-              (window.innerWidth - this.margin.left - this.margin.right) * 0.95
-            );
-          },
-          get boundedWidth() {
-            return this.width - this.margin.left - this.margin.right;
-          },
-          get height() {
-            return this.width;
-          },
-          get boundedHeight() {
-            return this.height - this.margin.top - this.margin.bottom;
-          },
-          ...customDimensions
-        };
-      }
 
-      var dimensions = createDimensions();
+      var dimensions = this.createDimensions();
 
       // 3. Draw canvas
 
@@ -172,7 +258,7 @@ export default {
         .select("rect")
         .on("mouseenter", handleMouseEnter)
         .on("mouseleave", handleMouseLeave);
-
+      binGroups.select("rect").dispatch("mouseenter");
       function handleMouseEnter(datum) {
         tooltip.select("#count").text(yAccessor(datum));
         tooltip
@@ -219,10 +305,8 @@ export default {
 .wrapper {
   /* set position on the wrapper to accommodate tooltip position */
   position: relative;
-  /* display: grid; */
   display: flex;
   justify-content: center;
-  /* margin: 5em 2em; */
   font-family: sans-serif;
 }
 .bin rect {
