@@ -139,7 +139,7 @@ export default {
         // only include bins with a frequency > 0
         return d.length > 0;
       });
-      console.log(bins);
+
       this.yScale = d3
         .scaleLinear()
         .domain([0, d3.max(bins, this.yAccessor)])
