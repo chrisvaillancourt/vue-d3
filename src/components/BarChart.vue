@@ -20,7 +20,7 @@
         </g>
         <g
           class="x-axis"
-          :transform="`translateY(${dimensions.boundedHeight})`"
+          :transform="`translate(0,${dimensions.boundedHeight})`"
         >
           <text class="x-axis-label"></text>
         </g>
@@ -30,9 +30,9 @@
 </template>
 
 <script>
-import * as d3 from "d3";
+import * as d3 from 'd3';
 export default {
-  name: "BarChart",
+  name: 'BarChart',
   data() {
     return {
       dimensions: {
@@ -40,43 +40,45 @@ export default {
           top: 10,
           right: 10,
           bottom: 50,
-          left: 10
+          left: 10,
         },
         width: null,
         boundedWidth: null,
         height: null,
-        boundedHeight: null
+        boundedHeight: null,
       },
       weatherData: [],
       xScale: null,
       yScale: null,
-      bars: []
+      bars: [],
     };
   },
   beforeMount() {
-    this.loadData()
-      .then(() => this.calculateScales())
-      .catch(console.error);
+    this.loadData().catch(console.error);
   },
   mounted() {
     this.updateDimensions({
       newHeight: window.innerHeight,
-      newWidth: window.innerWidth
+      newWidth: window.innerWidth,
     });
-    window.addEventListener("resize", this.handleResize);
+    window.addEventListener('resize', this.handleResize);
   },
   destroyed() {
-    window.removeEventListener("resize", this.handleResize);
+    window.removeEventListener('resize', this.handleResize);
   },
   computed: {},
   watch: {
     weatherData: function() {
-      // this.calculateScales();
-    }
+      try {
+        this.calculateScales();
+      } catch (err) {
+        console.error(err);
+      }
+    },
   },
   methods: {
     updateDimensions({ newHeight, newWidth } = {}) {
-      console.log("setting dimensions");
+      console.log('setting dimensions');
       this.dimensions.width = newWidth;
       this.dimensions.height = newHeight;
       this.dimensions.boundedWidth =
@@ -87,15 +89,16 @@ export default {
     handleResize(e) {
       this.updateDimensions({
         newHeight: window.innerHeight,
-        newWidth: window.innerWidth
+        newWidth: window.innerWidth,
       });
     },
     async loadData() {
-      this.weatherData = await d3.json("./static/data/nyc_weather_data.json");
+      this.weatherData = await d3.json('./static/data/nyc_weather_data.json');
     },
     calculateScales() {
-      if (!this.weatherData.length > 0) return;
-      console.log("calculating scales");
+      if (!this.weatherData.length) return;
+      console.log(this.weatherData);
+
       function metricAccessor(d) {
         return d.humidity;
       }
@@ -132,15 +135,15 @@ export default {
           x,
           y,
           height,
-          width
+          width,
         };
       });
     },
     async drawBars() {
-      console.log("drawing");
+      console.log('drawing');
       // 1. Access data
 
-      var dataset = await d3.json("./static/data/nyc_weather_data.json");
+      var dataset = await d3.json('./static/data/nyc_weather_data.json');
       // 2. Create chart dimensions
 
       var dimensions = this.createDimensions();
@@ -148,27 +151,27 @@ export default {
       // 3. Draw canvas
 
       const wrapper = d3
-        .select("#wrapper")
-        .append("svg")
-        .attr("width", dimensions.width)
-        .attr("height", dimensions.height);
+        .select('#wrapper')
+        .append('svg')
+        .attr('width', dimensions.width)
+        .attr('height', dimensions.height);
 
       const bounds = wrapper
-        .append("g")
+        .append('g')
         .style(
-          "transform",
+          'transform',
           `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
         );
 
       // init static elements
-      bounds.append("g").attr("class", "bins");
-      bounds.append("line").attr("class", "mean");
+      bounds.append('g').attr('class', 'bins');
+      bounds.append('line').attr('class', 'mean');
       bounds
-        .append("g")
-        .attr("class", "x-axis")
-        .style("transform", `translateY(${dimensions.boundedHeight}px)`)
-        .append("text")
-        .attr("class", "x-axis-label");
+        .append('g')
+        .attr('class', 'x-axis')
+        .style('transform', `translateY(${dimensions.boundedHeight}px)`)
+        .append('text')
+        .attr('class', 'x-axis-label');
 
       const metricAccessor = d => d.humidity;
       const yAccessor = d => d.length;
@@ -200,70 +203,70 @@ export default {
       const barPadding = 1;
 
       let binGroups = bounds
-        .select(".bins")
-        .selectAll(".bin")
+        .select('.bins')
+        .selectAll('.bin')
         .data(bins);
 
       binGroups.exit().remove();
 
       const newBinGroups = binGroups
         .enter()
-        .append("g")
-        .attr("class", "bin");
+        .append('g')
+        .attr('class', 'bin');
 
-      newBinGroups.append("rect");
-      newBinGroups.append("text");
+      newBinGroups.append('rect');
+      newBinGroups.append('text');
 
       // update binGroups to include new points
       binGroups = newBinGroups.merge(binGroups);
 
       const barRects = binGroups
-        .select("rect")
-        .attr("x", d => xScale(d.x0) + barPadding)
-        .attr("y", d => yScale(yAccessor(d)))
-        .classed("rects", true)
-        .attr("height", d => dimensions.boundedHeight - yScale(yAccessor(d)))
-        .attr("width", d =>
+        .select('rect')
+        .attr('x', d => xScale(d.x0) + barPadding)
+        .attr('y', d => yScale(yAccessor(d)))
+        .classed('rects', true)
+        .attr('height', d => dimensions.boundedHeight - yScale(yAccessor(d)))
+        .attr('width', d =>
           d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding])
         );
 
       const mean = d3.mean(dataset, metricAccessor);
 
       const meanLine = bounds
-        .selectAll(".mean")
-        .attr("x1", xScale(mean))
-        .attr("x2", xScale(mean))
-        .attr("y1", -20)
-        .attr("y2", dimensions.boundedHeight);
+        .selectAll('.mean')
+        .attr('x1', xScale(mean))
+        .attr('x2', xScale(mean))
+        .attr('y1', -20)
+        .attr('y2', dimensions.boundedHeight);
 
       // draw axes
       const xAxisGenerator = d3.axisBottom().scale(xScale);
 
-      const xAxis = bounds.select(".x-axis").call(xAxisGenerator);
+      const xAxis = bounds.select('.x-axis').call(xAxisGenerator);
 
       const xAxisLabel = xAxis
-        .select(".x-axis-label")
-        .attr("x", dimensions.boundedWidth / 2)
-        .attr("y", dimensions.margin.bottom - 10)
-        .text("Humidity");
+        .select('.x-axis-label')
+        .attr('x', dimensions.boundedWidth / 2)
+        .attr('y', dimensions.margin.bottom - 10)
+        .text('Humidity');
 
       // 7. Set up interactions
-      var tooltip = d3.select("#tooltip");
+      var tooltip = d3.select('#tooltip');
 
       // create text formatting function
-      const formatHumidity = d3.format(".2f");
+      const formatHumidity = d3.format('.2f');
       // standard convention is to use id's in JS and
       // classes in CSS
       binGroups
-        .select("rect")
-        .on("mouseenter", handleMouseEnter)
-        .on("mouseleave", handleMouseLeave);
-      binGroups.select("rect").dispatch("mouseenter");
+        .select('rect')
+        .on('mouseenter', handleMouseEnter)
+        .on('mouseleave', handleMouseLeave);
+      binGroups.select('rect').dispatch('mouseenter');
       function handleMouseEnter(datum) {
-        tooltip.select("#count").text(yAccessor(datum));
+        tooltip.select('#count').text(yAccessor(datum));
         tooltip
-          .select("#range")
-          .text([formatHumidity(datum.x0), formatHumidity(datum.x1)].join("-"));
+          .select('#range')
+          .text([formatHumidity(datum.x0), formatHumidity(datum.x1)].join('-'));
 
         // to calc our tooltip's x position, we need to take 3 things into account:
         // 1) the bar's x position in the chart (xScale(datum.x0))
@@ -288,16 +291,16 @@ export default {
         // transform: translate() can take a percentage value for the currently specified element
         tooltip
           .style(
-            "transform",
+            'transform',
             `translate(calc(-50% + ${x}px), calc(-100% + ${y}px))`
           )
-          .style("opacity", 1);
+          .style('opacity', 1);
       }
       function handleMouseLeave() {
-        tooltip.style("opacity", 0);
+        tooltip.style('opacity', 0);
       }
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -349,7 +352,7 @@ export default {
 }
 
 .tooltip:before {
-  content: "";
+  content: '';
   position: absolute;
   bottom: 0;
   left: 50%;
