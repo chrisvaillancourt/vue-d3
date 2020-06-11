@@ -26,7 +26,6 @@
   grid-area: nav;
   justify-self: center;
   padding: 30px;
-  background-color: lightblue;
 }
 
 #nav a {
