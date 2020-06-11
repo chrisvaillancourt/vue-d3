@@ -1,8 +1,17 @@
 <template>
   <div id="wrapper" class="wrapper">
-    <div id="tooltip" class="tooltip">
-      <div class="tooltip-range">Humidity: <span id="range"></span></div>
-      <div class="tooltip-value"><span id="count"></span> days</div>
+    <div
+      :style="tooltip.styleObj"
+      v-show="tooltip.display"
+      id="tooltip"
+      class="tooltip"
+    >
+      <div class="tooltip-range">
+        Humidity: <span id="range">{{ tooltip.range }}</span>
+      </div>
+      <div class="tooltip-value">
+        <span id="count">{{ tooltip.frequency }}</span> days
+      </div>
     </div>
     <svg
       class="histogram"
@@ -17,7 +26,18 @@
       >
         <g class="bins">
           <g v-for="d in bars" :key="d.id" class="bin">
-            <rect :x="d.x" :y="d.y" :height="d.height" :width="d.width"></rect>
+            <rect
+              v-on="{
+                mouseenter: handleMouseEnter,
+                mouseleave: handleMouseLeave,
+              }"
+              :x="d.x"
+              :y="d.y"
+              :height="d.height"
+              :width="d.width"
+              :data-tooltip-range="d.tooltipRange"
+              :data-tooltip-frequency="d.frequency"
+            ></rect>
             <text :x="d.label.x" :y="d.label.y">{{ d.label.text }}</text>
           </g>
         </g>
@@ -74,7 +94,16 @@ export default {
       weatherData: [],
       xScale: function() {},
       yScale: function() {},
+      formatMetric: format('.2f'),
       bars: [],
+      tooltip: {
+        display: false,
+        range: '',
+        frequency: '',
+        styleObj: {
+          transform: ``,
+        },
+      },
     };
   },
   beforeMount() {
@@ -155,7 +184,6 @@ export default {
         .domain([0, max(bins, this.yAccessor)])
         .range([this.dimensions.boundedHeight, 0])
         .nice();
-
       var barPadding = 1;
       // create bars
       this.bars = bins.map((d, i) => {
@@ -168,13 +196,17 @@ export default {
           this.dimensions.boundedHeight - this.yScale(this.yAccessor(d));
         var width = max([0, this.xScale(x1) - this.xScale(x0) - barPadding]);
         var frequency = this.yAccessor(d);
-
+        var tooltipRange = [this.formatMetric(x0), this.formatMetric(x1)].join(
+          '-'
+        );
         return {
           x,
           y,
           height,
           width,
           id: i,
+          tooltipRange,
+          frequency,
           label: {
             x: labelX,
             y: labelY,
@@ -186,6 +218,31 @@ export default {
     renderAxis() {
       var xAxisGenerator = axisBottom().scale(this.xScale);
       select(this.$refs.xAxis).call(xAxisGenerator);
+    },
+    handleMouseEnter(e) {
+      var { target } = e;
+
+      this.tooltip.frequency = target.dataset.tooltipFrequency;
+      this.tooltip.range = target.dataset.tooltipRange;
+
+      var x = Number(target.getAttribute('x'));
+
+      // var x2 =
+      //   this.xScale(datum.x0) +
+      //   (xScale(datum.x1) - xScale(datum.x0)) / 2 +
+      //   dimensions.margin.left;
+
+      var y = Number(target.getAttribute('y'));
+      var width = Number(target.getAttribute('width'));
+      // console.log(width);
+      this.tooltip.styleObj.transform = `translate(calc(${x +
+        width / 2 +
+        this.dimensions.margin.left}px), calc(-100% + ${y}px))`;
+
+      this.tooltip.display = true;
+    },
+    handleMouseLeave() {
+      this.tooltip.display = false;
     },
   },
 };
@@ -229,7 +286,7 @@ export default {
 }
 
 .tooltip {
-  opacity: 0;
+  /* opacity: 0; */
   position: absolute;
   top: -12px;
   left: 0;
