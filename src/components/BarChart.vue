@@ -31,10 +31,17 @@
         ></line>
         <text class="mean-text" :x="line.x" y="">mean</text>
         <g
+          ref="xAxis"
           class="x-axis"
           :transform="`translate(0,${dimensions.boundedHeight})`"
         >
-          <text class="x-axis-label"></text>
+          <text
+            class="x-axis-label"
+            :x="dimensions.boundedWidth / 2"
+            :y="dimensions.margin.bottom - 10"
+          >
+            Humidity
+          </text>
         </g>
       </g>
     </svg>
@@ -94,6 +101,7 @@ export default {
   watch: {
     weatherData: function() {
       this.calculateScales();
+      this.renderAxis();
     },
   },
   methods: {
@@ -172,6 +180,10 @@ export default {
           },
         };
       });
+    },
+    renderAxis() {
+      var xAxisGenerator = d3.axisBottom().scale(this.xScale);
+      d3.select(this.$refs.xAxis).call(xAxisGenerator);
     },
     async drawBars() {
       console.log('drawing');
