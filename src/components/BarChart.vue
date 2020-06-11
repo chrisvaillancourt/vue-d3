@@ -60,8 +60,8 @@ export default {
   },
   mounted() {
     this.updateDimensions({
-      newHeight: window.innerHeight,
-      newWidth: window.innerWidth,
+      newHeight: window.innerHeight * 0.5,
+      newWidth: window.innerWidth * 0.5,
     });
     window.addEventListener('resize', this.handleResize);
   },
@@ -72,16 +72,11 @@ export default {
   computed: {},
   watch: {
     weatherData: function() {
-      try {
-        this.calculateScales();
-      } catch (err) {
-        console.error(err);
-      }
+      this.calculateScales();
     },
   },
   methods: {
     updateDimensions({ newHeight, newWidth } = {}) {
-      console.log('setting dimensions');
       this.dimensions.width = newWidth;
       this.dimensions.height = newHeight;
       this.dimensions.boundedWidth =
@@ -91,8 +86,8 @@ export default {
     },
     handleResize(e) {
       this.updateDimensions({
-        newHeight: window.innerHeight,
-        newWidth: window.innerWidth,
+        newHeight: window.innerHeight * 0.5,
+        newWidth: window.innerWidth * 0.5,
       });
     },
     async loadData() {
