@@ -20,6 +20,14 @@
             <rect :x="d.x" :y="d.y" :height="d.height" :width="d.width"></rect>
           </g>
         </g>
+        <line
+          :x1="line.x1"
+          :x2="line.x2"
+          :y1="line.y1"
+          :y2="line.y2"
+          stroke="maroon"
+          stroke-dasharray="2px 4px"
+        ></line>
         <g
           class="x-axis"
           :transform="`translate(0,${dimensions.boundedHeight})`"
@@ -50,8 +58,8 @@ export default {
         boundedHeight: null,
       },
       weatherData: [],
-      xScale: null,
-      yScale: null,
+      xScale: function() {},
+      yScale: function() {},
       bars: [],
     };
   },
@@ -69,7 +77,19 @@ export default {
     window.removeEventListener('resize', this.handleResize);
     console.clear();
   },
-  computed: {},
+  computed: {
+    dataMean: function() {
+      return d3.mean(this.weatherData, this.metricAccessor);
+    },
+    line: function() {
+      return {
+        x1: this.xScale(this.dataMean) || 0,
+        x2: this.xScale(this.dataMean) || 0,
+        y1: -15,
+        y2: this.dimensions.boundedHeight,
+      };
+    },
+  },
   watch: {
     weatherData: function() {
       this.calculateScales();
@@ -93,24 +113,24 @@ export default {
     async loadData() {
       this.weatherData = await d3.json('./static/data/nyc_weather_data.json');
     },
+    metricAccessor(d) {
+      return d.humidity;
+    },
     calculateScales() {
       if (!this.weatherData.length) return;
 
-      function metricAccessor(d) {
-        return d.humidity;
-      }
       function yAccessor(d) {
         return d.length;
       }
       this.xScale = d3
         .scaleLinear()
-        .domain(d3.extent(this.weatherData, metricAccessor))
+        .domain(d3.extent(this.weatherData, this.metricAccessor))
         .range([0, this.dimensions.boundedWidth])
         .nice();
       var binsGenerator = d3
         .histogram()
         .domain(this.xScale.domain())
-        .value(metricAccessor)
+        .value(this.metricAccessor)
         .thresholds(12);
 
       var bins = binsGenerator(this.weatherData);
