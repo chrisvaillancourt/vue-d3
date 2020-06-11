@@ -49,7 +49,12 @@
 </template>
 
 <script>
-import * as d3 from 'd3';
+import { json } from 'd3-fetch';
+import { select } from 'd3-selection';
+import { scaleLinear } from 'd3-scale';
+import { extent, max, histogram, mean } from 'd3-array';
+import { axisBottom } from 'd3-axis';
+import { format } from 'd3-format';
 export default {
   name: 'BarChart',
   data() {
@@ -88,7 +93,7 @@ export default {
   },
   computed: {
     dataMean: function() {
-      return d3.mean(this.weatherData, this.metricAccessor);
+      return mean(this.weatherData, this.metricAccessor);
     },
     line: function() {
       return {
@@ -120,7 +125,7 @@ export default {
       });
     },
     async loadData() {
-      this.weatherData = await d3.json('./static/data/nyc_weather_data.json');
+      this.weatherData = await json('./static/data/nyc_weather_data.json');
     },
     metricAccessor(d) {
       return d.humidity;
@@ -132,13 +137,11 @@ export default {
     calculateScales() {
       if (!this.weatherData.length) return;
 
-      this.xScale = d3
-        .scaleLinear()
-        .domain(d3.extent(this.weatherData, this.metricAccessor))
+      this.xScale = scaleLinear()
+        .domain(extent(this.weatherData, this.metricAccessor))
         .range([0, this.dimensions.boundedWidth])
         .nice();
-      var binsGenerator = d3
-        .histogram()
+      var binsGenerator = histogram()
         .domain(this.xScale.domain())
         .value(this.metricAccessor)
         .thresholds(12);
@@ -148,9 +151,8 @@ export default {
         return d.length > 0;
       });
 
-      this.yScale = d3
-        .scaleLinear()
-        .domain([0, d3.max(bins, this.yAccessor)])
+      this.yScale = scaleLinear()
+        .domain([0, max(bins, this.yAccessor)])
         .range([this.dimensions.boundedHeight, 0])
         .nice();
 
@@ -164,7 +166,7 @@ export default {
         var y = this.yScale(this.yAccessor(d));
         var height =
           this.dimensions.boundedHeight - this.yScale(this.yAccessor(d));
-        var width = d3.max([0, this.xScale(x1) - this.xScale(x0) - barPadding]);
+        var width = max([0, this.xScale(x1) - this.xScale(x0) - barPadding]);
         var frequency = this.yAccessor(d);
 
         return {
@@ -182,169 +184,8 @@ export default {
       });
     },
     renderAxis() {
-      var xAxisGenerator = d3.axisBottom().scale(this.xScale);
-      d3.select(this.$refs.xAxis).call(xAxisGenerator);
-    },
-    async drawBars() {
-      console.log('drawing');
-      // 1. Access data
-
-      var dataset = await d3.json('./static/data/nyc_weather_data.json');
-      // 2. Create chart dimensions
-
-      var dimensions = this.createDimensions();
-
-      // 3. Draw canvas
-
-      const wrapper = d3
-        .select('#wrapper')
-        .append('svg')
-        .attr('width', dimensions.width)
-        .attr('height', dimensions.height);
-
-      const bounds = wrapper
-        .append('g')
-        .style(
-          'transform',
-          `translate(${dimensions.margin.left}px, ${dimensions.margin.top}px)`
-        );
-
-      // init static elements
-      bounds.append('g').attr('class', 'bins');
-      bounds.append('line').attr('class', 'mean');
-      bounds
-        .append('g')
-        .attr('class', 'x-axis')
-        .style('transform', `translateY(${dimensions.boundedHeight}px)`)
-        .append('text')
-        .attr('class', 'x-axis-label');
-
-      const metricAccessor = d => d.humidity;
-      const yAccessor = d => d.length;
-
-      // 4. Create scales
-
-      const xScale = d3
-        .scaleLinear()
-        .domain(d3.extent(dataset, metricAccessor))
-        .range([0, dimensions.boundedWidth])
-        .nice();
-
-      const binsGenerator = d3
-        .histogram()
-        .domain(xScale.domain())
-        .value(metricAccessor)
-        .thresholds(12);
-
-      const bins = binsGenerator(dataset);
-
-      const yScale = d3
-        .scaleLinear()
-        .domain([0, d3.max(bins, yAccessor)])
-        .range([dimensions.boundedHeight, 0])
-        .nice();
-
-      // 5. Draw data
-
-      const barPadding = 1;
-
-      let binGroups = bounds
-        .select('.bins')
-        .selectAll('.bin')
-        .data(bins);
-
-      binGroups.exit().remove();
-
-      const newBinGroups = binGroups
-        .enter()
-        .append('g')
-        .attr('class', 'bin');
-
-      newBinGroups.append('rect');
-      newBinGroups.append('text');
-
-      // update binGroups to include new points
-      binGroups = newBinGroups.merge(binGroups);
-
-      const barRects = binGroups
-        .select('rect')
-        .attr('x', d => xScale(d.x0) + barPadding)
-        .attr('y', d => yScale(yAccessor(d)))
-        .classed('rects', true)
-        .attr('height', d => dimensions.boundedHeight - yScale(yAccessor(d)))
-        .attr('width', d =>
-          d3.max([0, xScale(d.x1) - xScale(d.x0) - barPadding])
-        );
-
-      const mean = d3.mean(dataset, metricAccessor);
-
-      const meanLine = bounds
-        .selectAll('.mean')
-        .attr('x1', xScale(mean))
-        .attr('x2', xScale(mean))
-        .attr('y1', -20)
-        .attr('y2', dimensions.boundedHeight);
-
-      // draw axes
-      const xAxisGenerator = d3.axisBottom().scale(xScale);
-
-      const xAxis = bounds.select('.x-axis').call(xAxisGenerator);
-
-      const xAxisLabel = xAxis
-        .select('.x-axis-label')
-        .attr('x', dimensions.boundedWidth / 2)
-        .attr('y', dimensions.margin.bottom - 10)
-        .text('Humidity');
-
-      // 7. Set up interactions
-      var tooltip = d3.select('#tooltip');
-
-      // create text formatting function
-      const formatHumidity = d3.format('.2f');
-      // standard convention is to use id's in JS and
-      // classes in CSS
-      binGroups
-        .select('rect')
-        .on('mouseenter', handleMouseEnter)
-        .on('mouseleave', handleMouseLeave);
-      binGroups.select('rect').dispatch('mouseenter');
-      function handleMouseEnter(datum) {
-        tooltip.select('#count').text(yAccessor(datum));
-        tooltip
-          .select('#range')
-          .text([formatHumidity(datum.x0), formatHumidity(datum.x1)].join('-'));
-
-        // to calc our tooltip's x position, we need to take 3 things into account:
-        // 1) the bar's x position in the chart (xScale(datum.x0))
-        // 2) half of the bar's width ((xScale(datum.x1)-xScale(datum.x0))/2)
-        // 3) the margin by which the bounds are shifted right (dimensions.margin.left)
-
-        const x =
-          xScale(datum.x0) +
-          (xScale(datum.x1) - xScale(datum.x0)) / 2 +
-          dimensions.margin.left;
-        // to calc our tooltip's y position, we need add:
-        // 1) the bar's y position (yScale(yAccessor(datum)))
-        // 2) the margin by which our bounds are shiften down (dimensions.margin.top)
-
-        const y = yScale(yAccessor(datum)) + dimensions.margin.top;
-        // we're setting a transform CSS property rather than a 'left' and 'top'
-        // value because of the performance cost.
-        // A good guide is to only directly change transforma and opacity
-
-        // We also need to take the size of the tooltip into account without the cost of
-        // calling .getBoundingClientRect().
-        // transform: translate() can take a percentage value for the currently specified element
-        tooltip
-          .style(
-            'transform',
-            `translate(calc(-50% + ${x}px), calc(-100% + ${y}px))`
-          )
-          .style('opacity', 1);
-      }
-      function handleMouseLeave() {
-        tooltip.style('opacity', 0);
-      }
+      var xAxisGenerator = axisBottom().scale(this.xScale);
+      select(this.$refs.xAxis).call(xAxisGenerator);
     },
   },
 };
