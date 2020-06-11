@@ -65,6 +65,7 @@ export default {
   },
   destroyed() {
     window.removeEventListener('resize', this.handleResize);
+    console.clear();
   },
   computed: {},
   watch: {
@@ -97,7 +98,6 @@ export default {
     },
     calculateScales() {
       if (!this.weatherData.length) return;
-      console.log(this.weatherData);
 
       function metricAccessor(d) {
         return d.humidity;
@@ -110,12 +110,6 @@ export default {
         .domain(d3.extent(this.weatherData, metricAccessor))
         .range([0, this.dimensions.boundedWidth])
         .nice();
-      this.yScale = d3
-        .scaleLinear()
-        .domain([0, d3.max(bins, yAccessor)])
-        .range([this.dimensions.boundedHeight, 0])
-        .nice();
-
       var binsGenerator = d3
         .histogram()
         .domain(this.xScale.domain())
@@ -123,6 +117,13 @@ export default {
         .thresholds(12);
 
       var bins = binsGenerator(this.weatherData);
+
+      this.yScale = d3
+        .scaleLinear()
+        .domain([0, d3.max(bins, yAccessor)])
+        .range([this.dimensions.boundedHeight, 0])
+        .nice();
+
       var barPadding = 1;
       this.bars = bins.map((d, i) => {
         var { x0, x1 } = d;
