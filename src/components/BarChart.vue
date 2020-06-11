@@ -21,13 +21,14 @@
           </g>
         </g>
         <line
-          :x1="line.x1"
-          :x2="line.x2"
+          :x1="line.x"
+          :x2="line.x"
           :y1="line.y1"
           :y2="line.y2"
           stroke="maroon"
           stroke-dasharray="2px 4px"
         ></line>
+        <text class="mean-text" :x="line.x" y="">mean</text>
         <g
           class="x-axis"
           :transform="`translate(0,${dimensions.boundedHeight})`"
@@ -83,8 +84,7 @@ export default {
     },
     line: function() {
       return {
-        x1: this.xScale(this.dataMean) || 0,
-        x2: this.xScale(this.dataMean) || 0,
+        x: this.xScale(this.dataMean) || 0,
         y1: -15,
         y2: this.dimensions.boundedHeight,
       };
@@ -116,12 +116,12 @@ export default {
     metricAccessor(d) {
       return d.humidity;
     },
+    yAccessor(d) {
+      return d.length;
+    },
     calculateScales() {
       if (!this.weatherData.length) return;
 
-      function yAccessor(d) {
-        return d.length;
-      }
       this.xScale = d3
         .scaleLinear()
         .domain(d3.extent(this.weatherData, this.metricAccessor))
@@ -137,7 +137,7 @@ export default {
 
       this.yScale = d3
         .scaleLinear()
-        .domain([0, d3.max(bins, yAccessor)])
+        .domain([0, d3.max(bins, this.yAccessor)])
         .range([this.dimensions.boundedHeight, 0])
         .nice();
 
@@ -145,8 +145,9 @@ export default {
       this.bars = bins.map((d, i) => {
         var { x0, x1 } = d;
         var x = this.xScale(x0) + barPadding;
-        var y = this.yScale(yAccessor(d));
-        var height = this.dimensions.boundedHeight - this.yScale(yAccessor(d));
+        var y = this.yScale(this.yAccessor(d));
+        var height =
+          this.dimensions.boundedHeight - this.yScale(this.yAccessor(d));
         var width = d3.max([0, this.xScale(x1) - this.xScale(x0) - barPadding]);
 
         return {
@@ -324,6 +325,10 @@ export default {
 </script>
 
 <style scoped>
+.mean-text {
+  fill: maroon;
+  text-anchor: middle;
+}
 .wrapper {
   /* set position on the wrapper to accommodate tooltip position */
   position: relative;
