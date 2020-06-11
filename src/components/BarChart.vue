@@ -16,7 +16,9 @@
         "
       >
         <g class="bins">
-          <g></g>
+          <g v-for="d in bars" :key="d.id" class="bin">
+            <rect :x="d.x" :y="d.y" :height="d.height" :width="d.width"></rect>
+          </g>
         </g>
         <g
           class="x-axis"
@@ -137,6 +139,7 @@ export default {
           y,
           height,
           width,
+          id: i,
         };
       });
     },
