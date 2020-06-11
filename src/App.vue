@@ -12,11 +12,11 @@
 <style>
 #app {
   color: #2c3e50;
-  font-family: "Inter var", sans-serif;
+  font-family: 'Inter var', sans-serif;
   display: grid;
   grid-template-areas:
-    "nav"
-    "content";
+    'nav'
+    'content';
   gap: 20px;
 
   /* height: 100vh; */
@@ -47,12 +47,12 @@ html {
   box-sizing: inherit;
 }
 @font-face {
-  font-family: "Inter var";
+  font-family: 'Inter var';
   font-display: swap;
   font-weight: 100 900;
   font-style: normal;
-  font-named-instance: "Regular";
-  src: url("./static/fonts/Inter.var.woff2") format("woff2");
+  font-named-instance: 'Regular';
+  src: url('./static/fonts/Inter.var.woff2') format('woff2');
 }
 @media all and (max-width: 700px) {
 }

@@ -8,12 +8,12 @@
 </template>
 
 <script>
-import BarChart from "../components/BarChart.vue";
+import BarChart from '../components/BarChart.vue';
 export default {
-  name: "BarChartExample",
+  name: 'BarChartExample',
   components: {
-    BarChart
-  }
+    BarChart,
+  },
 };
 </script>
 
