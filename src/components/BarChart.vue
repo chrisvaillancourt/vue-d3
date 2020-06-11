@@ -18,6 +18,7 @@
         <g class="bins">
           <g v-for="d in bars" :key="d.id" class="bin">
             <rect :x="d.x" :y="d.y" :height="d.height" :width="d.width"></rect>
+            <text :x="d.label.x" :y="d.label.y">{{ d.label.text }}</text>
           </g>
         </g>
         <line
@@ -117,6 +118,7 @@ export default {
       return d.humidity;
     },
     yAccessor(d) {
+      // length of the bins == number of values in that group (frequency)
       return d.length;
     },
     calculateScales() {
@@ -133,8 +135,11 @@ export default {
         .value(this.metricAccessor)
         .thresholds(12);
 
-      var bins = binsGenerator(this.weatherData);
-
+      var bins = binsGenerator(this.weatherData).filter(d => {
+        // only include bins with a frequency > 0
+        return d.length > 0;
+      });
+      console.log(bins);
       this.yScale = d3
         .scaleLinear()
         .domain([0, d3.max(bins, this.yAccessor)])
@@ -142,13 +147,17 @@ export default {
         .nice();
 
       var barPadding = 1;
+      // create bars
       this.bars = bins.map((d, i) => {
         var { x0, x1 } = d;
         var x = this.xScale(x0) + barPadding;
+        var labelX = this.xScale(x0) + (this.xScale(x1) - this.xScale(x0)) / 2;
+        var labelY = this.yScale(this.yAccessor(d)) - 5;
         var y = this.yScale(this.yAccessor(d));
         var height =
           this.dimensions.boundedHeight - this.yScale(this.yAccessor(d));
         var width = d3.max([0, this.xScale(x1) - this.xScale(x0) - barPadding]);
+        var frequency = this.yAccessor(d);
 
         return {
           x,
@@ -156,6 +165,11 @@ export default {
           height,
           width,
           id: i,
+          label: {
+            x: labelX,
+            y: labelY,
+            text: frequency,
+          },
         };
       });
     },
