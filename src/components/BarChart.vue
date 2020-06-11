@@ -85,7 +85,7 @@ export default {
     line: function() {
       return {
         x: this.xScale(this.dataMean) || 0,
-        y1: -15,
+        y1: 10,
         y2: this.dimensions.boundedHeight,
       };
     },
